@@ -1,0 +1,17 @@
+Dim i As Integer
+
+
+For i = 0 To 50
+vFolder = swFolder.GetFeatures
+ Set swRecurso = vFolder(2)
+ 
+ MsgBox swRecurso.Name
+ If (swRecurso.GetTypeName = "CutListFolder") Then
+    boolstatus = swModel.Extension.SelectByID2(swRecurso.Name, swRecurso.GetTypeName, 0, 0, 0, False, 0, Nothing, 0)
+    boolstatus = swModel.SelectedFeatureProperties(0, 0, 0, 0, 0, 0, 0, 1, 1, "b")
+    End
+ End If
+ Set swRecurso = swRecurso.GetNextFeature
+ 
+
+Next i

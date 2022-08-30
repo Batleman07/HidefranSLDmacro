@@ -1,0 +1,137 @@
+Like this?
+
+Option Explicit
+
+Dim SwApp As SldWorks.SldWorks
+
+Dim Part As SldWorks.ModelDoc2
+
+Dim swFeat As SldWorks.Feature
+
+Dim boolstatus As Long
+
+Dim foldercount As Integer
+
+Dim prefixName As String
+
+Sub Main()
+
+    prefixName = InputBox("Enter a prefix for the cut-list folder names")
+
+    foldercount = 0
+
+    Set SwApp = CreateObject("SldWorks.Application")
+
+    Set Part = SwApp.ActiveDoc
+
+    If Part Is Nothing Then
+
+        MsgBox ("A part must be opened")
+
+        Exit Sub
+
+    End If
+
+    If Part.GetType <> 1 Then
+
+        MsgBox ("A part must be opened")
+
+        Exit Sub
+
+    End If
+
+    Set swFeat = Part.FirstFeature
+
+    TraverseFeatures swFeat, True
+
+    Part.ClearSelection2 (True)
+
+End Sub
+
+Sub TraverseFeatures(ByVal thisFeat As Feature, ByVal isTopLevel As Boolean)
+
+    Dim curFeat As SldWorks.Feature
+
+    Set curFeat = thisFeat
+
+    While Not curFeat Is Nothing
+
+        If Not isTopLevel Then DoTheWork curFeat
+
+        Dim subfeat As SldWorks.Feature
+
+        Set subfeat = curFeat.GetFirstSubFeature
+
+        While Not subfeat Is Nothing
+
+            TraverseFeatures subfeat, False
+
+            Dim nextSubFeat As SldWorks.Feature
+
+            Set nextSubFeat = subfeat.GetNextSubFeature
+
+            Set subfeat = nextSubFeat
+
+            Set nextSubFeat = Nothing
+
+        Wend
+
+        Set subfeat = Nothing
+
+        Dim nextFeat As SldWorks.Feature
+
+        If isTopLevel Then
+
+            Set nextFeat = curFeat.GetNextFeature
+
+        Else
+
+            Set nextFeat = Nothing
+
+        End If
+
+        Set curFeat = nextFeat
+
+        Set nextFeat = Nothing
+
+    Wend
+
+End Sub
+
+Sub DoTheWork(ByVal thisFeat As Feature)
+
+    If thisFeat.GetTypeName = "CutListFolder" Then
+
+        If thisFeat.GetSpecificFeature2.GetBodyCount = 0 Then Exit Sub
+
+        foldercount = foldercount + 1
+
+        boolstatus = Part.Extension.SelectByID2(thisFeat.Name, "SUBWELDFOLDER", 0, 0, 0, False, 0, Nothing, 0)
+
+        Part.SelectionManager.GetSelectedObject5(1).Name = prefixName & IIf(foldercount < 10, "00" + CStr(foldercount), IIf(foldercount < 100, "0" + CStr(foldercount), CStr(foldercount)))
+
+    End If
+
+End Sub
+
+=> If your cut lists have a custom properties, you could replace DoTheWork function by something like:
+
+Sub DoTheWork(ByVal thisFeat As Feature)
+
+    If thisFeat.GetTypeName = "CutListFolder" Then
+
+        If thisFeat.GetSpecificFeature2.GetBodyCount = 0 Then Exit Sub
+
+        foldercount = foldercount + 1
+
+        boolstatus = Part.Extension.SelectByID2(thisFeat.Name, "SUBWELDFOLDER", 0, 0, 0, False, 0, Nothing, 0)
+
+        Dim CustomProp As String
+
+        CustomProp = Part.SelectionManager.GetSelectedObject2(1).CustomPropertyManager.Get("PART NUMBER")
+
+        Part.SelectionManager.GetSelectedObject5(1).Name = prefixName & IIf(foldercount < 10, "00" + CStr(foldercount), IIf(foldercount < 100, "0" + CStr(foldercount), CStr(foldercount))) & " - " & CustomProp
+
+    End If
+
+End Sub
